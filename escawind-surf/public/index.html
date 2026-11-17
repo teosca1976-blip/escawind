@@ -1,0 +1,88 @@
+<!doctype html><html lang="it"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>EscaWind</title>
+<style>
+:root{--bg:#eef3f2;--ink:#12303a;--mut:#5d7680;--card:#fff;--line:#d3dedd;--lake:#1f6f8b;--ok:#c9eadb;--okt:#1d6b47;--al:#ffb703;--rain:#4a5fa8}
+@media(prefers-color-scheme:dark){:root{--bg:#0e1b20;--ink:#e3eeee;--mut:#8aa3ab;--card:#152a31;--line:#25414a;--lake:#5db4d1;--ok:#1d4d3a;--okt:#8fe0b9;--rain:#8fa4ee}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.45 "Avenir Next","Segoe UI",system-ui,sans-serif}
+header{display:flex;flex-wrap:wrap;gap:12px;align-items:baseline;justify-content:space-between;padding:20px 24px 8px}
+h1{margin:0;font-size:28px;letter-spacing:-.02em}h1 small{font-size:14px;font-weight:400;color:var(--mut);margin-left:10px}
+button{font:inherit;border:1px solid var(--lake);background:var(--lake);color:#fff;border-radius:6px;padding:7px 14px;cursor:pointer}
+button.g{background:transparent;color:var(--lake)}button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid var(--al);outline-offset:2px}
+main{padding:8px 24px 40px;display:grid;gap:18px}
+.loc{background:var(--card);border:1px solid var(--line);border-left:6px solid var(--line);border-radius:8px;padding:14px 16px}
+.loc.al{border-left-color:var(--al)}.top{display:flex;flex-wrap:wrap;gap:8px 16px;align-items:baseline;justify-content:space-between}
+.top h2{margin:0;font-size:20px}.badge{font-weight:600;padding:2px 10px;border-radius:99px;background:var(--al);color:#2b1d00}.badge.n{background:var(--line);color:var(--mut)}
+.meta{color:var(--mut);font-size:13px;margin:2px 0 10px}.sum{margin:0 0 10px;font-weight:600}
+.sc{overflow-x:auto}table{border-collapse:collapse;font-size:13px;min-width:100%}td,th{padding:4px 7px;text-align:center;white-space:nowrap;border-bottom:1px solid var(--line)}
+th:first-child{position:sticky;left:0;background:var(--card);text-align:left;color:var(--mut);font-weight:500}
+.dy0{background:rgba(31,111,139,.12)}.dy1{background:rgba(255,183,3,.14)}.dy2{background:rgba(140,100,220,.12)}.ds{border-left:2px solid var(--line)}
+th.dh{font-weight:600;color:var(--ink);border-bottom:1px solid var(--line)}
+td.ok{background:var(--ok);color:var(--okt);font-weight:600}.rn{color:var(--rain)}.arr{display:inline-block}
+.act{margin-top:10px;display:flex;gap:10px;flex-wrap:wrap;font-size:13px}.act a{color:var(--lake)}
+dialog{border:1px solid var(--line);border-radius:10px;background:var(--card);color:var(--ink);width:min(480px,94vw)}
+dialog::backdrop{background:#0008}label{display:block;margin:10px 0 3px;font-weight:600;font-size:13px}
+input,select{width:100%;font:inherit;padding:7px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink)}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:10px}.chk{display:flex;gap:8px;align-items:center;font-weight:400;margin-top:14px}.chk input{width:auto}
+.gh{margin:10px 0 0;font-size:16px;color:var(--mut)}.tabs{padding:0 24px 10px;display:flex;gap:6px;flex-wrap:wrap}.tab{background:transparent;color:var(--lake);border-radius:99px}.tab.sel{background:var(--lake);color:#fff}
+.gb{padding:0 24px;display:flex;gap:8px;flex-wrap:wrap}.off{opacity:.65}.empty{padding:40px;text-align:center;color:var(--mut)}@media(prefers-reduced-motion:no-preference){.arr{transition:transform .2s}}
+</style></head><body>
+<header><h1>EscaWind<small id="st"></small></h1><div><button class="g" id="run">Aggiorna ora</button> <button class="g" id="tst" title="Invia subito un'email di prova, a qualsiasi ora">Test email</button> <button id="add">Aggiungi località</button></div></header>
+<div class="tabs" id="tb" role="tablist"></div><div class="gb" id="gb"></div><main id="m"></main>
+<dialog id="dlg"><form method="dialog" id="f">
+<h2 style="margin:0" id="dt">Località</h2>
+<label for="n">Nome</label><input id="n" required><label for="kd">Disciplina</label><select id="kd"><option value="wind">Vento (windsurf / kite)</option><option value="surf">Surf (onda)</option></select><label for="gr">Gruppo</label><input id="gr" list="gl" placeholder="es. Mare"><datalist id="gl"><option>Lago di Lecco</option><option>Lago di Garda</option><option>Mare</option><option>Surf</option></datalist>
+<div class="two"><div><label for="la">Latitudine</label><input id="la" type="number" step="any" required></div><div><label for="lo">Longitudine</label><input id="lo" type="number" step="any" required></div></div>
+<button type="button" class="g" id="geo" style="margin-top:8px">Cerca coordinate dal nome</button><label for="mo">Modello</label><select id="mo"><option value="meteofrance_arome_france_hd">AROME HD (standard)</option><option value="meteofrance_arome_france">AROME 2,5 km</option><option value="icon_seamless">ICON</option><option value="icon_d2">ICON-D2 (2 km)</option><option value="meteoswiss_icon_ch1">MeteoSvizzera ICON-CH1</option><option value="meteoswiss_icon_ch2">MeteoSvizzera ICON-CH2</option><option value="ecmwf_ifs025">ECMWF IFS</option><option value="gfs_seamless">GFS</option></select>
+<div id="wf"><div class="two"><div><label for="ms">Soglia vento (nodi)</label><input id="ms" type="number" min="0" value="10" required></div>
+<div><label for="di">Direzione (±45°)</label><select id="di"><option value="">Qualsiasi</option></select></div></div>
+<label class="chk"><input type="checkbox" id="rb"> Se piove, nessun alert</label></div>
+<div id="sf" hidden><div class="two"><div><label for="mh">Altezza onda minima (m)</label><input id="mh" type="number" min="0" step="0.1" value="1"></div>
+<div><label for="mp">Periodo minimo (s)</label><input id="mp" type="number" min="0" step="0.5" value="6"></div></div>
+<div class="two"><div><label for="sd">Mare da (±45°)</label><select id="sd"><option value="">Qualsiasi</option></select></div>
+<div><label for="mk">Vento massimo (nodi)</label><input id="mk" type="number" min="0" placeholder="nessun limite" value="15"></div></div></div>
+<label for="wg">Link Windguru (facoltativo)</label><input id="wg" type="url" placeholder="https://www.windguru.cz/...">
+<div style="margin-top:16px;display:flex;gap:10px;justify-content:flex-end"><button type="button" class="g" id="cx">Annulla</button><button>Salva</button></div></form></dialog>
+<script>
+const $=id=>document.getElementById(id),C=['N','NE','E','SE','S','SO','O','NO'];
+C.forEach((c,i)=>{$('di').add(new Option(c+' ('+i*45+'°)',i*45));$('sd').add(new Option(c+' ('+i*45+'°)',i*45))});
+function tk(){const sf=$('kd').value==='surf';$('wf').hidden=sf;$('sf').hidden=!sf;$('ms').required=!sf}$('kd').onchange=tk;
+let locs=[],res={},edit=null,tab='Tutte';try{tab=localStorage.getItem('tab')||'Tutte'}catch{}
+const el=(t,c,x)=>{const e=document.createElement(t);if(c)e.className=c;if(x!=null)e.textContent=x;return e};
+const hh=t=>t.slice(8,10)+'/'+t.slice(5,7)+' '+t.slice(11,13)+'h';
+async function api(p,o={}){let c='';try{c=localStorage.getItem('code')||''}catch{}
+ const r=await fetch('/api/'+p,{...o,headers:{'x-code':c}});
+ if(r.status===401){c=prompt('Codice di accesso');if(c){try{localStorage.setItem('code',c)}catch{}return api(p,o)}throw new Error(401)}
+ if(!r.ok){let m=r.status;try{m=(await r.json()).error||m}catch{}throw new Error(m)}return r.json()}
+async function load(){try{const d=await api('data');locs=d.locations;res=d.results;draw()}catch(e){$('st').textContent='Errore: '+e.message}}
+function draw(){const m=$('m');m.replaceChildren();const G=[...new Set(locs.map(l=>l.grp||'Altre'))],gb=$('gb'),tb0=$('tb');if(tab!=='Tutte'&&!G.includes(tab))tab='Tutte';tb0.replaceChildren();
+ ['Tutte',...G].forEach(g=>{const n=locs.filter(l=>(g==='Tutte'||(l.grp||'Altre')==g)&&l.on!==false&&res[l.id]?.alert).length,b=el('button','tab'+(g===tab?' sel':''),g+(n?' · '+n:''));b.setAttribute('role','tab');b.setAttribute('aria-selected',g===tab);b.onclick=()=>{tab=g;try{localStorage.setItem('tab',g)}catch{}draw()};tb0.append(b)});
+ const V=tab==='Tutte'?G:[tab];gb.replaceChildren();V.forEach(g=>{const L=locs.filter(l=>(l.grp||'Altre')==g),n=L.filter(l=>l.on!==false).length,b=el('button','g',`${g}: ${n}/${L.length} attive`);b.onclick=()=>save(locs.map(l=>(l.grp||'Altre')==g?{...l,on:n==0}:l));gb.append(b)});
+ if(!locs.length){m.append(el('div','empty','Nessuna località. Aggiungine una per avviare i controlli.'));return}
+ const ts=Object.values(res).map(r=>r.at).sort().pop();$('st').textContent=ts?'Ultimo controllo '+new Date(ts).toLocaleString('it-IT',{dateStyle:'short',timeStyle:'short'}):'Nessun controllo ancora';
+ V.forEach(g=>{if(tab==='Tutte')m.append(el('h3','gh',g));locs.filter(l=>(l.grp||'Altre')==g).forEach(l=>{const off=l.on===false,r=off?null:res[l.id],c=el('section','loc'+(r?.alert?' al':'')+(off?' off':'')),top=el('div','top');
+  top.append(el('h2',0,l.name),el('span','badge'+(r?.alert?'':' n'),off?'Esclusa':r?.error?'Errore dati':r?.alert?(l.kind==='surf'?'Alert surf':'Alert vento'):'Nessun alert'));
+  c.append(top,el('p','meta',l.kind==='surf'?`Surf · vento ${r?.model||l.model} · onda ≥ ${l.minH??1} m · periodo ≥ ${l.minP??6} s · mare da ${l.sdir===''||l.sdir==null?'ogni direzione':C[l.sdir/45]} · vento max ${l.maxKn===''||l.maxKn==null?'senza limite':l.maxKn+' nodi'}`:`${r?.model||l.model} · soglia ${l.minKn} nodi · ${l.dir===''?'ogni direzione':'da '+C[l.dir/45]} · pioggia ${l.rainBlock?'esclude':'ignorata'}`));
+  if(!r)c.append(el('p','meta',off?'Esclusa dai controlli.':'In attesa del primo controllo.'));
+  else if(r.error)c.append(el('p','meta',r.error));
+  else{if(r.fallback)c.append(el('p','meta','Zona fuori copertura del modello scelto: uso ICON.'));if(r.extFrom)c.append(el('p','meta','Dal '+hh(r.extFrom)+' i dati sono ICON: il modello scelto non copre oltre.'));const ok=r.rows.filter(x=>x.ok);c.append(el('p','sum',ok.length?`Condizioni buone: ${hh(ok[0].t)} – ${hh(ok.at(-1).t)} (${ok.length} ore)`:'Nessuna ora utile nei prossimi 5 giorni (07–19)'));
+   const sc=el('div','sc'),tb=el('table'),days=[...new Set(r.rows.map(x=>x.t.slice(0,10)))],R0=el('tr');R0.append(el('th',0,'Data'));
+   days.forEach((dd,i)=>{const n=r.rows.filter(x=>x.t.startsWith(dd)).length,th=el('th','dh dy'+(i%3)+(i?' ds':''),new Date(dd+'T12:00').toLocaleDateString('it-IT',n>=3?{weekday:'short',day:'2-digit',month:'2-digit'}:{day:'2-digit',month:'2-digit'}));th.colSpan=n;R0.append(th)});tb.append(R0);
+   const ar=(v)=>{if(v==null)return 'n/d';const s=el('span','arr','↓');s.style.transform=`rotate(${v}deg)`;s.title=Math.round(v)+'°';return s},
+    O=['Ora',x=>hh(x.t).slice(6)],Wd=[['Vento kn',x=>Math.round(x.w)],['Raffica kn',x=>Math.round(x.g)],['Dir.',x=>ar(x.d)],['Pioggia',x=>x.r>0.1?'sì '+x.r.toFixed(1)+' mm':'no']],
+    Wv=[['Altezza onda m',x=>x.wh??'n/d'],['Periodo onda s',x=>x.p??'n/d']],
+    R=l.kind==='surf'?[['Ora',O[1]],...Wv,['Mare da',x=>ar(x.sd)],...Wd]:[['Ora',O[1]],...Wd,...(/lago/i.test(l.grp||'')?[]:[['Periodo onda s',x=>x.p??'n/d'],['Altezza onda m',x=>x.wh??'n/d']])];
+   R.forEach(([n,f],ri)=>{const tr=el('tr');tr.append(el('th',0,n));r.rows.forEach((x,i)=>{const d=el(ri?'td':'th','',null);const v=f(x);d.append(v instanceof Node?v:document.createTextNode(v));d.className='dy'+(days.indexOf(x.t.slice(0,10))%3)+(i&&x.t.slice(0,10)!=r.rows[i-1].t.slice(0,10)?' ds':'');if(ri&&x.ok)d.classList.add('ok');if(n==='Pioggia'&&x.r>0.1)d.classList.add('rn');tr.append(d)});tb.append(tr)});
+   sc.append(tb);c.append(sc);if(r.wave)c.append(el('p','meta','Onde: '+(r.wave.model?'modello '+r.wave.model:'nessun dato dal modello marino'+(r.wave.err?' ('+r.wave.err+')':''))))}
+  const a=el('div','act'),tg=el('label','chk'),ck=el('input');ck.type='checkbox';ck.checked=!off;ck.onchange=()=>save(locs.map(x=>x.id===l.id?{...x,on:ck.checked}:x));tg.append(ck,'Includi nei controlli');a.append(tg);const b=el('button','g','Modifica');b.onclick=()=>open(l);const x=el('button','g','Elimina');x.onclick=()=>del(l);a.append(b,x);
+  if(l.wg){const w=el('a',0,'Verifica su Windguru');w.href=l.wg;w.target='_blank';w.rel='noopener';a.append(w)}
+  c.append(a);m.append(c)})})}
+function open(l){edit=l;$('dt').textContent=l?'Modifica località':'Nuova località';$('n').value=l?.name||'';$('la').value=l?.lat??'';$('lo').value=l?.lon??'';$('gr').value=l?.grp||'';$('mo').value=l?.model||'meteofrance_arome_france_hd';$('ms').value=l?.minKn??10;$('di').value=l?.dir??'';$('rb').checked=!!l?.rainBlock;$('kd').value=l?.kind==='surf'?'surf':'wind';$('mh').value=l?.minH??1;$('mp').value=l?.minP??6;$('sd').value=l?.sdir??'';$('mk').value=l?.maxKn??15;tk();$('wg').value=l?.wg||'';$('dlg').showModal()}
+async function save(list){await api('locations',{method:'POST',body:JSON.stringify(list)});locs=list;$('st').textContent='Controllo in corso…';await api('run',{method:'POST'});await load()}
+$('geo').onclick=async()=>{const q=$('n').value.trim();if(!q)return;try{const r=await(await fetch('https://geocoding-api.open-meteo.com/v1/search?count=1&language=it&name='+encodeURIComponent(q))).json(),p=r.results?.[0];if(p){$('la').value=p.latitude;$('lo').value=p.longitude}else alert('Nessun risultato: inserisci le coordinate a mano')}catch{alert('Ricerca non riuscita')}};$('add').onclick=()=>open(null);$('cx').onclick=()=>$('dlg').close();
+$('f').onsubmit=async e=>{const l={id:edit?.id||crypto.randomUUID(),name:$('n').value.trim(),kind:$('kd').value==='surf'?'surf':undefined,grp:$('gr').value.trim()||($('kd').value==='surf'?'Surf':'Altre'),on:edit?edit.on!==false:true,lat:+$('la').value,lon:+$('lo').value,model:$('mo').value,minKn:+$('ms').value,dir:$('di').value===''?'':+$('di').value,rainBlock:$('rb').checked,minH:+$('mh').value,minP:+$('mp').value,sdir:$('sd').value===''?'':+$('sd').value,maxKn:$('mk').value===''?'':+$('mk').value,wg:$('wg').value.trim()};
+ try{await save(edit?locs.map(x=>x.id===l.id?l:x):[...locs,l])}catch{$('st').textContent='Salvataggio non riuscito'}};
+async function del(l){if(confirm('Eliminare '+l.name+'?'))try{await save(locs.filter(x=>x.id!==l.id))}catch{$('st').textContent='Eliminazione non riuscita'}}
+$('run').onclick=async()=>{$('st').textContent='Controllo in corso…';try{await api('run',{method:'POST'})}catch{}await load()};
+$('tst').onclick=async()=>{$('st').textContent='Invio email di test…';try{await api('test',{method:'POST'});await load();$('st').textContent='Email di test inviata · '+$('st').textContent}catch(e){$('st').textContent='Test non riuscito: '+e.message}};
+load();
+</script></body></html>
