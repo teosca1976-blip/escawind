@@ -24,9 +24,14 @@ dialog::backdrop{background:#0008}label{display:block;margin:10px 0 3px;font-wei
 input,select{width:100%;font:inherit;padding:7px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink)}
 .two{display:grid;grid-template-columns:1fr 1fr;gap:10px}.chk{display:flex;gap:8px;align-items:center;font-weight:400;margin-top:14px}.chk input{width:auto}
 .gh{margin:10px 0 0;font-size:16px;color:var(--mut)}.tabs{padding:0 24px 10px;display:flex;gap:6px;flex-wrap:wrap}.tab{background:transparent;color:var(--lake);border-radius:99px}.tab.sel{background:var(--lake);color:#fff}
+.nt{margin:0 24px 10px;background:var(--card);border:1px solid var(--line);border-radius:8px;padding:8px 14px}.nt summary{cursor:pointer;font-weight:600}.nt fieldset{border:0;margin:8px 0 0;padding:0}.nt legend{color:var(--mut);font-size:13px;padding:0}.nt label{display:inline-flex;gap:6px;align-items:center;font-weight:400;font-size:15px;margin:4px 16px 4px 0}.nt input{width:auto}.nt .hint{color:var(--mut);font-size:13px;margin:6px 0 2px}
 .gb{padding:0 24px;display:flex;gap:8px;flex-wrap:wrap}.off{opacity:.65}.empty{padding:40px;text-align:center;color:var(--mut)}@media(prefers-reduced-motion:no-preference){.arr{transition:transform .2s}}
 </style></head><body>
 <header><h1>EscaWind<small id="st"></small></h1><div><button class="g" id="run">Aggiorna ora</button> <button class="g" id="tst" title="Invia subito un'email di prova, a qualsiasi ora">Test email</button> <button id="add">Aggiungi località</button></div></header>
+<details class="nt" id="nt"><summary id="nts">Notifiche email</summary>
+<fieldset><legend>Quando ricevere la mail</legend><label><input type="checkbox" name="sl" value="m"> Mattina (circa 8:30)</label><label><input type="checkbox" name="sl" value="p"> Pomeriggio (circa 14:30)</label><label><input type="checkbox" name="sl" value="s"> Sera (circa 20:30)</label></fieldset>
+<fieldset><legend>Cosa ricevere</legend><label><input type="radio" name="dc" value="both"> Vento e surf</label><label><input type="radio" name="dc" value="wind"> Solo vento</label><label><input type="radio" name="dc" value="surf"> Solo surf</label></fieldset>
+<p class="hint">I controlli girano comunque tre volte al giorno e la dashboard si aggiorna sempre: queste scelte decidono solo quali email arrivano.</p></details>
 <div class="tabs" id="tb" role="tablist"></div><div class="gb" id="gb"></div><main id="m"></main>
 <dialog id="dlg"><form method="dialog" id="f">
 <h2 style="margin:0" id="dt">Località</h2>
@@ -46,6 +51,11 @@ input,select{width:100%;font:inherit;padding:7px;border:1px solid var(--line);bo
 const $=id=>document.getElementById(id),C=['N','NE','E','SE','S','SO','O','NO'];
 C.forEach((c,i)=>{$('di').add(new Option(c+' ('+i*45+'°)',i*45));$('sd').add(new Option(c+' ('+i*45+'°)',i*45))});
 function tk(){const sf=$('kd').value==='surf';$('wf').hidden=sf;$('sf').hidden=!sf;$('ms').required=!sf}$('kd').onchange=tk;
+let cfg={slots:['m','p','s'],disc:'both'};
+function drawNt(){document.querySelectorAll('[name=sl]').forEach(c=>c.checked=cfg.slots.includes(c.value));document.querySelectorAll('[name=dc]').forEach(c=>c.checked=c.value===cfg.disc);
+ const n=cfg.slots.length;$('nts').textContent='Notifiche email · '+(n?n+' al giorno':'nessuna')+' · '+({both:'vento e surf',wind:'solo vento',surf:'solo surf'}[cfg.disc])}
+document.querySelectorAll('[name=sl],[name=dc]').forEach(c=>c.onchange=async()=>{cfg={slots:[...document.querySelectorAll('[name=sl]:checked')].map(x=>x.value),disc:document.querySelector('[name=dc]:checked')?.value||'both'};drawNt();
+ try{await api('settings',{method:'POST',body:JSON.stringify(cfg)});$('st').textContent='Preferenze email salvate'}catch(e){$('st').textContent='Salvataggio preferenze non riuscito: '+e.message}});
 let locs=[],res={},edit=null,tab='Tutte';try{tab=localStorage.getItem('tab')||'Tutte'}catch{}
 const el=(t,c,x)=>{const e=document.createElement(t);if(c)e.className=c;if(x!=null)e.textContent=x;return e};
 const hh=t=>t.slice(8,10)+'/'+t.slice(5,7)+' '+t.slice(11,13)+'h';
@@ -53,7 +63,7 @@ async function api(p,o={}){let c='';try{c=localStorage.getItem('code')||''}catch
  const r=await fetch('/api/'+p,{...o,headers:{'x-code':c}});
  if(r.status===401){c=prompt('Codice di accesso');if(c){try{localStorage.setItem('code',c)}catch{}return api(p,o)}throw new Error(401)}
  if(!r.ok){let m=r.status;try{m=(await r.json()).error||m}catch{}throw new Error(m)}return r.json()}
-async function load(){try{const d=await api('data');locs=d.locations;res=d.results;draw()}catch(e){$('st').textContent='Errore: '+e.message}}
+async function load(){try{const d=await api('data');locs=d.locations;res=d.results;if(d.settings)cfg=d.settings;drawNt();draw()}catch(e){$('st').textContent='Errore: '+e.message}}
 function draw(){const m=$('m');m.replaceChildren();const G=[...new Set(locs.map(l=>l.grp||'Altre'))],gb=$('gb'),tb0=$('tb');if(tab!=='Tutte'&&!G.includes(tab))tab='Tutte';tb0.replaceChildren();
  ['Tutte',...G].forEach(g=>{const n=locs.filter(l=>(g==='Tutte'||(l.grp||'Altre')==g)&&l.on!==false&&res[l.id]?.alert).length,b=el('button','tab'+(g===tab?' sel':''),g+(n?' · '+n:''));b.setAttribute('role','tab');b.setAttribute('aria-selected',g===tab);b.onclick=()=>{tab=g;try{localStorage.setItem('tab',g)}catch{}draw()};tb0.append(b)});
  const V=tab==='Tutte'?G:[tab];gb.replaceChildren();V.forEach(g=>{const L=locs.filter(l=>(l.grp||'Altre')==g),n=L.filter(l=>l.on!==false).length,b=el('button','g',`${g}: ${n}/${L.length} attive`);b.onclick=()=>save(locs.map(l=>(l.grp||'Altre')==g?{...l,on:n==0}:l));gb.append(b)});
@@ -64,7 +74,7 @@ function draw(){const m=$('m');m.replaceChildren();const G=[...new Set(locs.map(
   c.append(top,el('p','meta',l.kind==='surf'?`Surf · vento ${r?.model||l.model} · onda ≥ ${l.minH??1} m · periodo ≥ ${l.minP??6} s · mare da ${l.sdir===''||l.sdir==null?'ogni direzione':C[l.sdir/45]} · vento max ${l.maxKn===''||l.maxKn==null?'senza limite':l.maxKn+' nodi'}`:`${r?.model||l.model} · soglia ${l.minKn} nodi · ${l.dir===''?'ogni direzione':'da '+C[l.dir/45]} · pioggia ${l.rainBlock?'esclude':'ignorata'}`));
   if(!r)c.append(el('p','meta',off?'Esclusa dai controlli.':'In attesa del primo controllo.'));
   else if(r.error)c.append(el('p','meta',r.error));
-  else{if(r.fallback)c.append(el('p','meta','Zona fuori copertura del modello scelto: uso ICON.'));if(r.extFrom)c.append(el('p','meta','Dal '+hh(r.extFrom)+' i dati sono ICON: il modello scelto non copre oltre.'));const ok=r.rows.filter(x=>x.ok);c.append(el('p','sum',ok.length?`Condizioni buone: ${hh(ok[0].t)} – ${hh(ok.at(-1).t)} (${ok.length} ore)`:'Nessuna ora utile nei prossimi 5 giorni (07–19)'));
+  else{if(r.fallback)c.append(el('p','meta','Zona fuori copertura del modello scelto: uso ICON.'));if(r.extFrom)c.append(el('p','meta','Dal '+hh(r.extFrom)+' i dati sono ICON: il modello scelto non copre oltre.'));const h0=r.h0??6,h1=r.h1??21;r.rows=r.rows.filter(x=>{const h=+x.t.slice(11,13);return h>=h0&&h<h1});const ok=r.rows.filter(x=>x.ok);c.append(el('p','sum',ok.length?`Condizioni buone: ${hh(ok[0].t)} – ${hh(ok.at(-1).t)} (${ok.length} ore)`:`Nessuna ora utile nei prossimi 5 giorni (${String(h0).padStart(2,'0')}–${h1})`));
    const sc=el('div','sc'),tb=el('table'),days=[...new Set(r.rows.map(x=>x.t.slice(0,10)))],R0=el('tr');R0.append(el('th',0,'Data'));
    days.forEach((dd,i)=>{const n=r.rows.filter(x=>x.t.startsWith(dd)).length,th=el('th','dh dy'+(i%3)+(i?' ds':''),new Date(dd+'T12:00').toLocaleDateString('it-IT',n>=3?{weekday:'short',day:'2-digit',month:'2-digit'}:{day:'2-digit',month:'2-digit'}));th.colSpan=n;R0.append(th)});tb.append(R0);
    const ar=(v)=>{if(v==null)return 'n/d';const s=el('span','arr','↓');s.style.transform=`rotate(${v}deg)`;s.title=Math.round(v)+'°';return s},

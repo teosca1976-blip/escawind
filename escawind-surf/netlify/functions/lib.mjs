@@ -20,10 +20,15 @@ export const loadLocs = async () => {
   return l;
 };
 export const loadRes = () => rd('results', {});
+// Preferenze email: slots = fasce in cui inviare (m = mattina, p = pomeriggio, s = sera), disc = cosa ricevere (both / wind / surf)
+const SLOTS = ['m', 'p', 's'], DISC = ['both', 'wind', 'surf'];
+export const loadSettings = async () => ({ slots: [...SLOTS], disc: 'both', ...(await rd('settings', {})) });
+export const saveSettings = (s) => st().setJSON('settings', { slots: (Array.isArray(s?.slots) ? s.slots : []).filter((x) => SLOTS.includes(x)), disc: DISC.includes(s?.disc) ? s.disc : 'both' });
 
-const H0 = 7, H1 = 19; // fascia utile: dalle 07:00 alle 18:59
+const H0 = 6, H1 = 21; // fascia utile: dalle 06:00 alle 20:59 (ultima ora mostrata: 20h). Fuori fascia le ore non vengono né valutate né mostrate
 const pick = (h, k, m) => h[k] ?? h[`${k}_${m}`];
 const rome = () => new Date().toLocaleString('sv-SE', { timeZone: 'Europe/Rome' }).slice(0, 16).replace(' ', 'T');
+const slotNow = () => { const h = +rome().slice(11, 13); return h < 11 ? 'm' : h < 17 ? 'p' : 's'; }; // controlli alle ~08:30, ~14:30, ~20:30
 const anyDir = (v) => v == null || v === '';
 const C = ['N', 'NE', 'E', 'SE', 'S', 'SO', 'O', 'NO'], card = (d) => C[Math.round(d / 45) % 8];
 const diff = (a, b) => { const d = Math.abs(a - b) % 360; return d > 180 ? 360 - d : d; };
@@ -78,7 +83,7 @@ export async function checkLocation(l) {
     const p = wv?.wp?.[i] ?? null, q = wv?.wh?.[i] ?? null, sd = wv?.wdir?.[i] ?? null;
     return { t, w: pick(h, 'wind_speed_10m', m)[i], g: pick(h, 'wind_gusts_10m', m)[i], d: pick(h, 'wind_direction_10m', m)[i],
       r: pick(h, 'precipitation', m)[i], p, wh: q == null ? null : +q.toFixed(1), sd };
-  }).filter((x) => x.t >= now && x.w != null).slice(0, 120);
+  }).filter((x) => x.t >= now && x.w != null && +x.t.slice(11, 13) >= H0 && +x.t.slice(11, 13) < H1).slice(0, 120);
   for (const x of rows) {
     const hr = +x.t.slice(11, 13);
     const day = hr >= H0 && hr < H1;
@@ -87,7 +92,7 @@ export async function checkLocation(l) {
       x.ok = day && x.wh != null && x.wh >= (l.minH ?? 1) && x.p != null && x.p >= (l.minP ?? 6) && dirOk && (l.maxKn == null || l.maxKn === '' || x.w <= +l.maxKn);
     } else x.ok = day && x.w >= l.minKn && (!l.dir && l.dir !== 0 || l.dir === '' || diff(x.d, +l.dir) <= 45) && !(l.rainBlock && x.r > 0.1);
   }
-  return { rows, alert: rows.some((x) => x.ok), model: m, fallback, extFrom, wave: wv && { model: wv.model, err: wv.err } };
+  return { rows, h0: H0, h1: H1, alert: rows.some((x) => x.ok), model: m, fallback, extFrom, wave: wv && { model: wv.model, err: wv.err } };
 }
 
 async function mail({ wind = [], surf = [] }, { test = false } = {}) {
@@ -112,9 +117,13 @@ export async function runAll({ notify = false, test = false } = {}) {
   }));
   await st().setJSON('results', res);
   if (notify || test) {
+    const cfg = await loadSettings();
+    if (notify && !test && !cfg.slots.includes(slotNow())) return res; // fascia disattivata: nessuna mail e stato degli alert invariato
+    const incl = (l) => cfg.disc === 'both' || (cfg.disc === 'surf') === (l.kind === 'surf');
     // in modalità test si ignora lo stato degli alert già inviati e non lo si modifica
     const prev = test ? {} : await rd('alerts', {}), now = {}, items = { wind: [], surf: [] };
     for (const l of locs) {
+      if (!incl(l)) { if (prev[l.id]) now[l.id] = prev[l.id]; continue; } // disciplina esclusa: non la segno come già inviata
       const ok = (res[l.id]?.rows || []).filter((x) => x.ok);
       if (!ok.length) continue;
       now[l.id] = ok.map((x) => x.t).join();
